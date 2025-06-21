@@ -1,45 +1,42 @@
-import { getImagesByQuery } from './pixabay-api.js';
-import {
-  createGallery,
-  clearGallery,
-  showLoader,
-  hideLoader,
-} from './render-functions.js';
+import './css/styles.css';
+import { getImagesByQuery } from './js/pixabay-api.js';
+import { createGallery, clearGallery, showLoader, hideLoader } from './js/render-functions.js';
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
 const form = document.querySelector('.form');
-const input = form.elements['search-text'];
 
 const params = new URLSearchParams(window.location.search);
 const initialQuery = params.get('search-text');
 if (initialQuery) {
-  input.value = initialQuery;
+  form.elements['search-text'].value = initialQuery;
   form.dispatchEvent(new Event('submit'));
 }
 
-form.addEventListener('submit', async e => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  const query = input.value.trim();
+  const query = e.target.elements['search-text'].value.trim();
+
   if (!query) {
-    iziToast.error({ message: 'Please enter a search query!' });
+    iziToast.warning({ message: 'Будь ласка, введіть слово для пошуку!', position: 'topRight' });
     return;
   }
+
   clearGallery();
   showLoader();
+
   try {
     const data = await getImagesByQuery(query);
-    hideLoader();
-    if (!data.hits.length) {
-      iziToast.info({
-        message:
-          'Sorry, there are no images matching your search query. Please try again!',
-      });
-      return;
+    const images = data.hits;
+
+    if (images.length === 0) {
+      iziToast.info({ message: 'Sorry, there are no images matching your search query. Please try again!', position: 'topRight' });
+    } else {
+      createGallery(images);
     }
-    createGallery(data.hits);
-  } catch (error) {
+  } catch (err) {
+    iziToast.error({ message: 'Сталася помилка. Спробуйте ще раз.', position: 'topRight' });
+  } finally {
     hideLoader();
-    iziToast.error({ message: 'Error fetching images. Try again later.' });
-  }
+  } 
 });
